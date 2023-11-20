@@ -99,27 +99,33 @@ const registerUser = async (req, res) => {
   }
   // empty password field
   if (!password) {
-    return res.status(400).json({
+    return res.status(405).json({
       success: false,
       message: "Must enter a password!",
     });
   }
   // empty email field
   if (!email) {
-    return res.status(400).json({
+    return res.status(406).json({
       success: false,
       message: "Must enter an email!",
     });
   }
   // check if email is valid
   if (!validator.isEmail(email)) {
-    throw Error("email is not valid");
+    return res.status(407).json({
+      success: false,
+      message: "Email is not valid!",
+    });
   }
   // check if new registration email already exists in the database.
   const exists = await User.findOne({ email });
 
   if (exists) {
-    throw Error("Email already in use");
+    return res.status(401).json({
+      success: false,
+      message: "Email already exists! Please login.",
+    });
   }
 
   // hash password so the password entered by the user will be saved encrypted in the database for better security

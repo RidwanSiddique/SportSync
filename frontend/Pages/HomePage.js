@@ -3,7 +3,6 @@ import { View, Text, Button, StyleSheet, ScrollView, Image } from 'react-native'
 import { useNavigation } from '@react-navigation/native';
 import { AuthContext } from '../context/authContext'; 
 
-// ... (other imports)
 
 const Home = () => {
   const [selectedTeam, setSelectedTeam] = useState('Your Team');

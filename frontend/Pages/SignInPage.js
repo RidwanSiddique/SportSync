@@ -21,6 +21,8 @@ const SignIn = () => {
       if (response.data.message === 'passed') {
         // Login successful, dispatch LOGIN action
         dispatch({ type: 'LOGIN', payload: { token: response.data.token } });
+        Alert.alert('Login Successful', 'Welcome to SportSync!');
+        // Navigate to the main navigator
         navigation.navigate('MainNavigator');
       } else {
         // Login failed, show an error message
@@ -47,7 +49,7 @@ const SignIn = () => {
         }
         else if (error.response.status === 407) {
           // empty email field.
-          Alert.alert('Login Failed', 'Invalid password! Please try again or reset your password.');
+          Alert.alert('Login Failed', 'Invalid email! Please enter a valid email.');
         }
         else {
           // Other server errors
@@ -60,8 +62,6 @@ const SignIn = () => {
         // Something happened in setting up the request that triggered an Error
         Alert.alert('Request Error', `Error setting up the request: ${error.message}`);
       }
-  
-      console.error('Error:', error);
     }
   };
   

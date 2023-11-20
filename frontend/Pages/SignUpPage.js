@@ -28,13 +28,52 @@ const SignUp = () => {
       if (response.data.message === 'passed') {
         // Registration successful, dispatch LOGIN action
         dispatch({ type: 'LOGIN', payload: { token: response.data.token } });
+
+        Alert.alert('Registration Successful','Please Sign In now!');
         // Navigate to a different screen (e.g., Home)
-        navigation.navigate('MainNavigator');
+        navigation.navigate('SignIn');
       } else {
-        console.log('Registration failed');
+        // registration failed, show an error message
+        Alert.alert('Login Failed', 'Please try again.');
       }
     } catch (error) {
-      console.error('Error during sign-up:', error.message);
+      // Handle specific errors and show appropriate alerts
+      if (error.response) {
+        if (error.response.status === 401) {
+          // Unauthorized (wrong email or password)
+          Alert.alert('Login Failed', 'Email already exists. Please Sign In!');
+
+          navigation.navigate('SignIn');
+        } 
+        else if (error.response.status === 400) {
+          // empty email and password field.
+          Alert.alert('Login Failed', 'All Fields must be filled!');
+        }
+        else if (error.response.status === 405) {
+          // empty password field.
+          Alert.alert('Login Failed', 'Must enter a password!');
+        }
+        else if (error.response.status === 406) {
+          // empty email field.
+          Alert.alert('Login Failed', 'Must enter an email!');
+        }
+        else if (error.response.status === 407) {
+          // empty email field.
+          Alert.alert('Login Failed', 'Invalid password! Please try again or reset your password.');
+        }
+        else {
+          // Other server errors
+          Alert.alert('Server Error', `Server responded with an error: ${error.response.data}`);
+        }
+      } else if (error.request) {
+        // The request was made but no response was received
+        Alert.alert('Network Error', 'No response received from the server. Please check your network connection.');
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        Alert.alert('Request Error', `Error setting up the request: ${error.message}`);
+      }
+  
+      console.error('Error:', error);
     }
   };
 
