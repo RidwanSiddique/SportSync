@@ -1,53 +1,77 @@
-// Import necessary modules
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+// SiginInPage.js  
+import React, { useState, useContext } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
+import { AuthContext } from '../context/authContext'; 
 
-// Create the SignIn component
 const SignIn = () => {
-  // State variables for email and password
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-
-  // Get the navigation object
   const navigation = useNavigation();
+  const { dispatch } = useContext(AuthContext);
 
-  // Function to handle sign-in
   const handleSignIn = async () => {
     try {
-      // Send a POST request to the server for sign-in
-      const response = await axios.post('https://172.16.1.177:3000/sportSync/login', {
+      const response = await axios.post('http://localhost:3000/sportSync/login', {
         email,
         password,
       });
 
-      // Check if the login was successful
       if (response.data.message === 'passed') {
-        // Login successful, navigate to the MainNavigator
+        // Login successful, dispatch LOGIN action
+        dispatch({ type: 'LOGIN', payload: { token: response.data.token } });
         navigation.navigate('MainNavigator');
       } else {
         // Login failed, show an error message
-        console.log('Login failed');
+        Alert.alert('Login Failed', 'Invalid email or password. Please try again.');
       }
     } catch (error) {
-      // Handle any errors
+      // Handle specific errors and show appropriate alerts
       if (error.response) {
-        // The request was made, but the server responded with a status code outside the range of 2xx
-        console.log('Server responded with an error:', error.response.data);
+        if (error.response.status === 401) {
+          // Unauthorized (wrong email or password)
+          Alert.alert('Login Failed', 'Email does not exist. Sign up to create an account.');
+        } 
+        else if (error.response.status === 400) {
+          // empty email and password field.
+          Alert.alert('Login Failed', 'All Fields must be filled!');
+        }
+        else if (error.response.status === 405) {
+          // empty password field.
+          Alert.alert('Login Failed', 'Must enter a password!');
+        }
+        else if (error.response.status === 406) {
+          // empty email field.
+          Alert.alert('Login Failed', 'Must enter an email!');
+        }
+        else if (error.response.status === 407) {
+          // empty email field.
+          Alert.alert('Login Failed', 'Invalid password! Please try again or reset your password.');
+        }
+        else {
+          // Other server errors
+          Alert.alert('Server Error', `Server responded with an error: ${error.response.data}`);
+        }
       } else if (error.request) {
         // The request was made but no response was received
-        console.log('No response received from the server');
+        Alert.alert('Network Error', 'No response received from the server. Please check your network connection.');
       } else {
         // Something happened in setting up the request that triggered an Error
-        console.error('Error setting up the request:', error.message);
+        Alert.alert('Request Error', `Error setting up the request: ${error.message}`);
       }
+  
+      console.error('Error:', error);
     }
   };
   
   // Function to handle navigation to the sign-up screen
   const handleSignUpPress = () => {
     navigation.navigate('SignUp');
+  };
+  // Function to handle navigation to the forgot password screen
+  const handleForgotPasswordPress = () => {
+    navigation.navigate('ForgotPassword');
   };
 
   // Function to handle form submission
@@ -72,11 +96,16 @@ const SignIn = () => {
         secureTextEntry
         style={styles.input}
       />
+      <View style={styles.additionalOptionsContainer}>
+        <TouchableOpacity onPress={handleSignUpPress}>
+          <Text style={styles.additionalOptionText}>Don't have an account? Sign Up</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handleForgotPasswordPress}>
+          <Text style={styles.additionalOptionText}>Forgot Password?</Text>
+        </TouchableOpacity>
+      </View>
       <TouchableOpacity onPress={handleSubmit} style={styles.signInButton}>
         <Text style={styles.buttonText}>Sign In</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={handleSignUpPress}>
-        <Text style={styles.signUpText}>Don't have an account? Sign Up</Text>
       </TouchableOpacity>
     </View>
   );
@@ -119,6 +148,17 @@ const styles = StyleSheet.create({
     marginTop: 20,
     fontSize: 16,
     color: '#007BFF',
+  },
+  additionalOptionsContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '80%',
+    marginBottom: 20,
+  },
+  additionalOptionText: {
+    fontSize: 14,
+    color: '#007BFF',
+    marginBottom: 10, // Add margin between the two options
   },
 });
 

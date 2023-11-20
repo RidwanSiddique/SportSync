@@ -1,37 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
+import { AuthContext } from '../context/authContext';
 
 const SignUp = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-   // Get the navigation object
   const navigation = useNavigation();
-  const handleSignUp = () => {
-    axios
-      .post('https://172.16.1.177:3000/sportSync/register', {
+  const { dispatch } = useContext(AuthContext);
+
+  const handleSignUp = async () => {
+    try {
+      const response = await axios.post('http://localhost:3000/sportSync/register', {
         firstName,
         lastName,
         email,
         password,
-      })
-      .then((response) => {
-        if (response.data.message === 'passed') {
-          // Registration successful, navigate to a different screen
-          navigation.navigate('SignIn'); // Change 'SignIn' to the login screen
-        } else {
-          // Registration failed, show an error message
-          console.log('Registration failed');
-        }
-      })
-      .catch((error) => {
-        // Handle any errors
-        console.error('Error:', error);
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
+
+      if (response.data.message === 'passed') {
+        // Registration successful, dispatch LOGIN action
+        dispatch({ type: 'LOGIN', payload: { token: response.data.token } });
+        // Navigate to a different screen (e.g., Home)
+        navigation.navigate('MainNavigator');
+      } else {
+        console.log('Registration failed');
+      }
+    } catch (error) {
+      console.error('Error during sign-up:', error.message);
+    }
   };
+
 
   const handleSignInPress = () => {
     navigation.navigate('SignIn');

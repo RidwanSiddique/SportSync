@@ -1,77 +1,39 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Modal, Button, StyleSheet } from 'react-native';
+import axios from 'axios'; // Import axios for making HTTP requests
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  forgotPasswordText: {
-    fontSize: 20,
-    marginBottom: 20,
-  },
-  input: {
-    height: 40,
-    borderColor: 'gray',
-    borderWidth: 1,
-    marginBottom: 10,
-    width: 250,
-    paddingHorizontal: 10,
-    borderRadius: 5,
-  },
-  button: {
-    backgroundColor: '#007BFF',
-    padding: 10,
-    borderRadius: 5,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 10,
-    elevation: 5,
-    alignItems: 'center',
-  },
-  modalText: {
-    fontSize: 18,
-    marginBottom: 10,
-  },
-  modalButton: {
-    marginTop: 15,
-  },
+  // Your existing styles
 });
 
 const ForgotPasswordScreen = ({ navigation }) => {
-  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
 
-  const forgotPasswordAPI = (username, email) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        resolve();
-      }, 2000);
-    });
+  const forgotPasswordAPI = (email) => {
+    // Make a POST request to the forgotPassword API endpoint
+    return axios.post('http://localhost:3000/sportSync/forgotPassword', { email })
+      .then(response => {
+        // Return a Promise that resolves when the OTP is sent successfully
+        return Promise.resolve(response.data);
+      })
+      .catch(error => {
+        // Return a Promise that rejects with the error
+        return Promise.reject(error);
+      });
   };
 
   const handleForgotPassword = async () => {
-    if (!username || !email) {
-      alert('Please enter both username and email.');
+    if (!email) {
+      alert('Please enter your email.');
       return;
     }
 
     try {
-      await forgotPasswordAPI(username, email);
+      // Call the forgotPasswordAPI function with the provided email
+      const result = await forgotPasswordAPI(email);
+
+      // If the OTP is sent successfully, display the modal
       setModalVisible(true);
     } catch (error) {
       console.error('Forgot Password Failed', error);
@@ -90,11 +52,6 @@ const ForgotPasswordScreen = ({ navigation }) => {
       <Text style={styles.forgotPasswordText}>Forgot Password</Text>
       <TextInput
         style={styles.input}
-        placeholder="Username"
-        onChangeText={(text) => setUsername(text)}
-      />
-      <TextInput
-        style={styles.input}
         placeholder="Email"
         onChangeText={(text) => setEmail(text)}
       />
@@ -111,7 +68,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
             <Button
               title="OK"
               onPress={handleCloseModal}
-              style={styles.modalButton} // Apply the new style to the modal button
+              style={styles.modalButton}
             />
           </View>
         </View>

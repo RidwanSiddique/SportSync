@@ -1,46 +1,39 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { View, Text, Button, StyleSheet, ScrollView, Image } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { AuthContext } from '../context/authContext'; 
 
-// Simulated user data
-const fakeUserId = 'fakeUserId123';
+// ... (other imports)
 
-// Sample data
-const upcomingGamesData = [
-  { id: 1, team: 'Team A', date: '2023-11-15' },
-  { id: 2, team: 'Team B', date: '2023-11-20' },
-  { id: 3, team: 'Team C', date: '2023-11-25' },
-];
-
-const previousGamesData = [
-  { id: 1, team: 'Team X', result: 'W' },
-  { id: 2, team: 'Team Y', result: 'L' },
-  { id: 3, team: 'Team Z', result: 'T' },
-];
-
-const teamStats = { wins: 5, losses: 3, ties: 2 };
-
-const generateDummyText = (length) => {
-  return Array.from({ length }, (_, index) => `Dummy Text ${index + 1}`).join(' ');
-};
-
-const Home = ({ navigation }) => {
+const Home = () => {
   const [selectedTeam, setSelectedTeam] = useState('Your Team');
   const [lastStats, setLastStats] = useState(null);
   const [userHome, setUserHome] = useState(null);
 
+  const navigation = useNavigation();
+  const { user } = useContext(AuthContext);
+
   useEffect(() => {
     const fetchUserHome = async () => {
       try {
-        // Simulating data fetching by using a fake user ID
-        // In a real app, you would replace this with an actual API call
-        const response = await fetch(`http://172.16.1.177:3000/sportSync/home/${fakeUserId}`);
+        // Get the actual user ID from the authentication context
+        const actualUserId = user ? user._id : null;
+
+        if (!actualUserId) {
+          // Handle the case where the user is not authenticated
+          console.log('User not authenticated');
+          navigation.navigate('SignIn'); // Redirect to the sign-in screen or handle it based on your app's logic
+          return;
+        }
+
+        const response = await fetch(`http://localhost:3000/sportSync/home/${actualUserId}`);
         const data = await response.json();
 
         if (data.success) {
           setUserHome(data.user);
         } else {
           console.log(data.message);
-          navigation.goBack();
+          // Handle the case where fetching user data failed
         }
       } catch (error) {
         console.error('Error:', error);
@@ -55,7 +48,7 @@ const Home = ({ navigation }) => {
 
     const stats = fetchLastStats(selectedTeam);
     setLastStats(stats);
-  }, [selectedTeam, navigation]);
+  }, [selectedTeam, navigation, user]);
 
   // Replace with actual team logo image source
   const teamLogoSource = require('./image.png');

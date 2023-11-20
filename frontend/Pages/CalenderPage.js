@@ -96,7 +96,7 @@ const CalenderPage = () => {
     };
     
     try{
-	const response = await axios.post('http://172.16.1.177:3000/sportSync/CreateGame', newMatch, {
+	const response = await axios.post('https://localhost:3000/sportSync/CreateGame', newMatch, {
 		headers: {'Content-Type': 'application/json'}});
 
 	    if(response.status !== 200){
