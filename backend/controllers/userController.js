@@ -2,10 +2,31 @@ const User = require("../models/userModels");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const validator = require("validator");
-
+const sendMail = require('../utils/sendMail.js');
 
 const createToken = (_id) => {
   return jwt.sign({ _id }, process.env.TOKEN, { expiresIn: "3d" });
+};
+// handles the home page
+const userHome = async (req, res) => {
+  const userId = req.params;
+
+  try {
+    const user = await User.findById(userId).populate('games');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    const userGames = user.games;
+    res.json({ success: true, games: userGames });
+  } catch (error) {
+    console.error('Error retrieving user games: ', error);
+    res.status(500).json({ success: false, error: 'Internal Server Error' });
+  }
 };
 // user login handling
 // Handles user login logics
@@ -13,21 +34,21 @@ const loginUser = async (req, res) => {
   const { email, password } = req.body;
   // validation
   if (!email && !password) {
-    return res.status(404).json({
+    return res.status(400).json({
       success: false,
       message: "All Fields must be filled!",
     });
   }
   // empty password field
   if (!password) {
-    return res.status(404).json({
+    return res.status(405).json({
       success: false,
       message: "Must enter a password!",
     });
   }
   // empty email field
   if (!email) {
-    return res.status(404).json({
+    return res.status(406).json({
       success: false,
       message: "Must enter an email!",
     });
@@ -37,7 +58,7 @@ const loginUser = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(404).json({
+      return res.status(401).json({
         success: false,
         message: "Email does not exist!",
       });
@@ -46,9 +67,9 @@ const loginUser = async (req, res) => {
     // bcrypt.compare will hash out the encrypted password from the database and match it with the user input in password section
     const matchPassword = await bcrypt.compare(password, user.password);
     if (!matchPassword) {
-      return res.status(404).json({
+      return res.status(407).json({
         success: false,
-        message: "Invalid username or password!",
+        message: "Invalid password!",
       });
     }
 
@@ -71,21 +92,21 @@ const registerUser = async (req, res) => {
   // validation
   // empty email and password field
   if (!email && !password) {
-    return res.status(404).json({
+    return res.status(400).json({
       success: false,
       message: "All Fields must be filled!",
     });
   }
   // empty password field
   if (!password) {
-    return res.status(404).json({
+    return res.status(400).json({
       success: false,
       message: "Must enter a password!",
     });
   }
   // empty email field
   if (!email) {
-    return res.status(404).json({
+    return res.status(400).json({
       success: false,
       message: "Must enter an email!",
     });
@@ -131,7 +152,7 @@ const userProfile = async (req, res) => {
     const userId = req.params.userId;
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({
+      return res.status(401).json({
         success: false,
         message: "User not found",
       });
@@ -155,9 +176,60 @@ const userProfile = async (req, res) => {
   }
 };
 
+const forgotPassword = async (req, res) => {
+  try {
+      const { email } = req.body;
+      const user = await User.findOne({ email })
+      if (!user) {
+          return res.status(400).json({
+              success: false,
+              message: "User not found!"
+          })
+      }
+      const otp = Math.floor(Math.random() * 1000000);
+      user.reset_otp = otp;
+      user.reset_otp_expiry = Date.now() + 10 * 60 * 1000;
+      await user.save();
+      await sendMail(email, "SportSync Verification Code", `Hey ${user.name}, your SportSync verification code is: ${otp}. If you didn't request for this, please ignore this mail.`);
+      res.status(200).json({ success: true, message: `OTP sent to ${email}` });
+
+  }
+  catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+const resetPassword = async (req, res) => {
+  try {
+      const { otp, newPassword } = req.body;
+
+      const user = await User.findOne({
+          reset_otp: otp,
+          reset_otp_expiry: { $gt: Date.now() },
+      })
+
+      if (!user) {
+          return res.status(400).json({ success: false, message: "OTP invalid or has been expired!" })
+      }
+
+      const changedPassword = await bcrypt.hash(newPassword, 12)
+      user.password = changedPassword;
+      user.reset_otp = null;
+      user.reset_otp_expiry = null;
+      await user.save();
+      res.status(200).json({ success: true, message: "Password is changed successfully!" });
+  }
+  catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+  }
+}
+
 
 module.exports = {
   loginUser,
   registerUser,
   userProfile,
+  userHome,
+  forgotPassword,
+  resetPassword
 };

@@ -1,6 +1,5 @@
 
 const { Team, userTeam, TeamStats } = require("../models/teamModels");
-const {User} = require("")
 
 
 const createTeam = async (req, res) => {
