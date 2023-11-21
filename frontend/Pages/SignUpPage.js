@@ -41,25 +41,25 @@ const SignUp = () => {
       if (error.response) {
         if (error.response.status === 401) {
           // Unauthorized (wrong email or password)
-          Alert.alert('Login Failed', 'Email already exists. Please Sign In!');
+          Alert.alert('Sign Up Failed', 'Email already exists. Please Sign In!');
 
           navigation.navigate('SignIn');
         } 
         else if (error.response.status === 400) {
           // empty email and password field.
-          Alert.alert('Login Failed', 'All Fields must be filled!');
+          Alert.alert('Sign Up Failed', 'All Fields must be filled!');
         }
         else if (error.response.status === 405) {
           // empty password field.
-          Alert.alert('Login Failed', 'Must enter a password!');
+          Alert.alert('Sign Up Failed', 'Must enter a password!');
         }
         else if (error.response.status === 406) {
           // empty email field.
-          Alert.alert('Login Failed', 'Must enter an email!');
+          Alert.alert('Sign Up Failed', 'Must enter an email!');
         }
         else if (error.response.status === 407) {
           // empty email field.
-          Alert.alert('Login Failed', 'Invalid password! Please try again or reset your password.');
+          Alert.alert('Sign Up Failed', 'Invalid email! Please enter a valid email.');
         }
         else {
           // Other server errors

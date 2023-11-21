@@ -35,10 +35,11 @@ const SignIn = () => {
           // Unauthorized (wrong email or password)
           Alert.alert('Login Failed', 'Email does not exist. Sign up to create an account.');
         } 
-        else if (error.response.status === 400) {
+        else if (error.response.status === 408) {
           // empty email and password field.
           Alert.alert('Login Failed', 'All Fields must be filled!');
         }
+        
         else if (error.response.status === 405) {
           // empty password field.
           Alert.alert('Login Failed', 'Must enter a password!');
@@ -50,6 +51,10 @@ const SignIn = () => {
         else if (error.response.status === 407) {
           // empty email field.
           Alert.alert('Login Failed', 'Invalid email! Please enter a valid email.');
+        }
+        else if (error.response.status === 409) {
+          // empty email field.
+          Alert.alert('Login Failed', 'Invalid email or password! Please try again.');
         }
         else {
           // Other server errors

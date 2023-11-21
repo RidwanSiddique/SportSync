@@ -34,7 +34,7 @@ const loginUser = async (req, res) => {
   const { email, password } = req.body;
   // validation
   if (!email && !password) {
-    return res.status(400).json({
+    return res.status(408).json({
       success: false,
       message: "All Fields must be filled!",
     });
@@ -53,6 +53,13 @@ const loginUser = async (req, res) => {
       message: "Must enter an email!",
     });
   }
+  // check if email is valid
+  if (!validator.isEmail(email)) {
+    return res.status(407).json({
+      success: false,
+      message: "Email is not valid!",
+    });
+  }
   try {
     // check if entered email exists in the database.
     const user = await User.findOne({ email });
@@ -67,7 +74,7 @@ const loginUser = async (req, res) => {
     // bcrypt.compare will hash out the encrypted password from the database and match it with the user input in password section
     const matchPassword = await bcrypt.compare(password, user.password);
     if (!matchPassword) {
-      return res.status(407).json({
+      return res.status(409).json({
         success: false,
         message: "Invalid password!",
       });
