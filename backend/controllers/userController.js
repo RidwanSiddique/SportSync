@@ -2,14 +2,14 @@ const User = require("../models/userModels");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const validator = require("validator");
-const sendMail = require('../utils/sendMail.js');
+const sendMail = require('../utils/sendMail');
 
 const createToken = (_id) => {
   return jwt.sign({ _id }, process.env.TOKEN, { expiresIn: "3d" });
 };
 // handles the home page
 const userHome = async (req, res) => {
-  const userId = req.params;
+  const userId = req.user._id; // Use the authenticated user's ID from req.use
 
   try {
     const user = await User.findById(userId).populate('games');
@@ -185,6 +185,7 @@ const userProfile = async (req, res) => {
 const forgotPassword = async (req, res) => {
   try {
       const { email } = req.body;
+      console.log('Email:', email);
       const user = await User.findOne({ email })
       if (!user) {
           return res.status(400).json({
@@ -196,40 +197,76 @@ const forgotPassword = async (req, res) => {
       user.reset_otp = otp;
       user.reset_otp_expiry = Date.now() + 10 * 60 * 1000;
       await user.save();
-      await sendMail(email, "SportSync Verification Code", `Hey ${user.name}, your SportSync verification code is: ${otp}. If you didn't request for this, please ignore this mail.`);
+      await sendMail(
+        email,
+        "SportSync Verification Code",
+        `Hey ${user.firstName} ${user.lastName}, your SportSync verification code is: ${otp}. If you didn't request for this, please ignore this mail.`
+      );   
       res.status(200).json({ success: true, message: `OTP sent to ${email}` });
 
   }
   catch (error) {
-      res.status(500).json({ success: false, message: error.message });
+    console.error('Error in forgotPassword:', error);
+      res.status(500).json({ success: false, message: error.message, error: error });
   }
 }
 
 const resetPassword = async (req, res) => {
   try {
-      const { otp, newPassword } = req.body;
+    const { otp, newPassword, confirmNewPassword } = req.body;
 
-      const user = await User.findOne({
-          reset_otp: otp,
-          reset_otp_expiry: { $gt: Date.now() },
-      })
+    if (newPassword !== confirmNewPassword) {
+      return res.status(400).json({ success: false, message: "Passwords do not match!" });
+    }
 
-      if (!user) {
-          return res.status(400).json({ success: false, message: "OTP invalid or has been expired!" })
-      }
+    const user = await User.findOne({
+      reset_otp: otp,
+      reset_otp_expiry: { $gt: Date.now() },
+    });
 
-      const changedPassword = await bcrypt.hash(newPassword, 12)
-      user.password = changedPassword;
-      user.reset_otp = null;
-      user.reset_otp_expiry = null;
-      await user.save();
-      res.status(200).json({ success: true, message: "Password is changed successfully!" });
+    if (!user) {
+      return res.status(400).json({ success: false, message: "Invalid OTP or has been expired!" });
+    }
+
+    const changedPassword = await bcrypt.hash(newPassword, 12);
+    user.password = changedPassword;
+    user.reset_otp = null;
+    user.reset_otp_expiry = null;
+    await user.save();
+
+    res.status(200).json({ success: true, message: "Password is changed successfully!" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
-  catch (error) {
-      res.status(500).json({ success: false, message: error.message });
-  }
-}
+};
 
+
+// otp verification
+const verify = async (req, res) => {
+  try {
+    const { otp } = req.body;
+    const user = await User.findOne({ 
+      reset_otp: otp, 
+      reset_otp_expiry: { $gte: Date.now() } 
+    });
+
+    if (!user) {
+      return res.status(400).json({ success: false, message: "Invalid OTP or has been expired!" });
+    }
+
+    // Clear the reset OTP and its expiry
+    user.reset_otp = null;
+    user.reset_otp_expiry = null;
+    await user.save();
+
+    // You can add additional logic here if needed before navigating to the reset password page
+
+    // Send a success response indicating that OTP is verified, and the client can navigate to the reset password page
+    res.status(200).json({ success: true, message: "OTP verified successfully. Navigate to reset password page." });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 module.exports = {
   loginUser,
@@ -237,5 +274,6 @@ module.exports = {
   userProfile,
   userHome,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  verify,
 };

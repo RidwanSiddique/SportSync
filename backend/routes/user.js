@@ -1,13 +1,17 @@
 const express = require('express');
-const {loginUser, registerUser, userProfile, userHome, forgotPassword, resetPassword} = require('../controllers/userController');
+const {loginUser, registerUser, userProfile, userHome, forgotPassword, resetPassword, verify} = require('../controllers/userController');
 const router = express.Router();
+const requireAuth = require('../middleware/requireAuth');
 
+// public routes
 router.post('/login', loginUser);
-
 router.post('/register', registerUser);
-router.get('/user/:userId', userProfile);
-router.get('/home/:userId', userHome);
-router.get('/forgotPassword', forgotPassword);
-router.post('/resetPassword', resetPassword);
 
+router.post('/forgotPassword', forgotPassword);
+router.post('/resetPassword', resetPassword);
+router.post('/verify', verify);
+
+// protected routes (requre authentication)
+router.get('/user/:userId', requireAuth, userProfile);
+router.get('/home/:userId', requireAuth, userHome);
 module.exports = router;

@@ -6,6 +6,8 @@ import MainNavigator from './MainNavigator';
 import SignUpPage from './Pages/SignUpPage'
 import SignInPage from './Pages/SignInPage';
 import ForgotPassword from './Pages/ForgotPassPage';
+import ResetPassword from './Pages/ResetPassword';
+import OtpPage from './Pages/OtpVerification';
 
 const Stack = createStackNavigator();
 
@@ -16,6 +18,8 @@ const AppNavigator = () => {
         <Stack.Screen name="SignUp" component={SignUpPage} /> 
         <Stack.Screen name="ForgotPassword" component={ForgotPassword} /> 
         <Stack.Screen name="MainNavigator" component={MainNavigator} />
+        <Stack.Screen name="ResetPassword" component={ResetPassword} />
+        <Stack.Screen name="OtpPage" component={OtpPage} />
     </Stack.Navigator>
     );
 };
