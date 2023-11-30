@@ -1,0 +1,29 @@
+version: "3.9"
+services:
+  mongodb:
+    image: mongo:7.0.2
+    restart: always
+    container_name: mongodb-container
+    volumes:
+      - mongo-data:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=admin
+    ports:
+      - "27017:27017"
+    
+  node1:
+    build: .
+    container_name: ServerNode
+    ports: 
+      - "3000:3000"
+    volumes:
+      - .:/usr/src/app
+    depends_on:
+      - mongodb
+    stdin_open: true
+    tty: true
+
+volumes:
+ mongo-data:
+
