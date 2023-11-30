@@ -1,170 +1,175 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  Alert,
-  TextInput,
-  Modal,
-  Button,
-} from 'react-native';
 
-const teamsData = [
-  { id: 1, name: 'TeamA' },
-  { id: 2, name: 'TeamB' },
-  { id: 3, name: 'TeamC' },
-];
-
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, TextInput, Modal, Button } from 'react-native';
+import axios from 'axios';
 const Team = () => {
-  const [selectedTeam, setSelectedTeam] = useState(null);            // relavant to selected state of a team, in UI when a team is selected it is highlighted--due to styling
-  const [newTeamID, setNewTeamID] = useState('');                    
+  const [teams, setTeams] = useState([]);
+  const [selectedTeam, setSelectedTeam] = useState(null);
+  // const [newTeamID, setNewTeamID] = useState('');
   const [newTeamName, setNewTeamName] = useState('');
-  const [isModal001Visible, setIsModal001Visible] = useState(false); // visible state of modal001
-  const [isModal002Visible, setIsModal002Visible] = useState(false); // visible state of modal002   // All modals can be looked up in function toggleModal() and its child functions
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isJoinVisible, setisJoinVisible] = useState(false);
+  const [isCreateVisible, setisCreateVisible] = useState(false);
 
-  const toggleModal = () => {
-    // toddleModal is for purpose of pop-up operational terminal for Create and Join team!
-    if (selectedTeam) {
-      // If selected it's not able to perform 'Create Team' or 'Join Team' therefore not a change to let the operational terminal pop-up!
-      Alert.alert(
-        'Error',
-        'Please un-select the team before creating or joining a team'
-      );
-    } else {
-      // Now, not a team is selected, then...
-      // So far: 
-      // toggleModal001() is associated with create team button
-      // toggleModal002() is associated with Join Team button
-      isModal001Visible ? toggleModal001() : toggleModal002();
+
+  var coachId = '6544586e906e3e00fa50bdbb';
+  useEffect(() => {
+    fetchTeams();
+  }, []);
+  
+  const fetchTeams = async () => {
+    try {
+      coachId = '6544586e906e3e00fa50bdbb';
+      const response = await axios.get('http://localhost:3000/sportSync/getUserTeams', {
+        params: {
+          userId: coachId,
+        },
+      });
+  
+      if (response.status !== 200) {
+        Alert.alert(response.data.message);
+      } else {
+        const receivedTeams = response.data;
+        console.log(receivedTeams);
+  
+        // Check if the response has the "teams" property
+        if (receivedTeams.hasOwnProperty('teams') && receivedTeams.teams.length > 0) {
+          setTeams(receivedTeams.teams);
+          console.log(teams);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching teams:', error);
     }
   };
-
-  const toggleModal001 = () => {
-    // When toggled, set the visibility of model-001
-    setIsModal001Visible(!isModal001Visible);
+  
+  const toggleModal = () => {
+    setIsModalVisible(!isModalVisible);
   };
-
-  const toggleModal002 = () => {
-    // When toggled, set the visibility of model-002
-    setIsModal002Visible(!isModal002Visible);
+  const selectTeam = (team) => {
+    setSelectedTeam(selectedTeam?._id === team._id ? null : team);
   };
-
   const createTeam = () => {
     if (selectedTeam) {
-      Alert.alert(
-        'Error',
-        'Please un-select the team before creating or joining a team'
-      );
+      Alert.alert('Error', 'Please un-select the team before creating or joining a team');
     } else {
-      toggleModal001();
+      toggleModal();
+      setisCreateVisible(true);
     }
   };
-
   const joinTeam = () => {
     if (selectedTeam) {
-      Alert.alert(
-        'Error',
-        'Please un-select the team before creating or joining a team'
-      );
+      Alert.alert('Error', 'Please un-select the team before creating or joining a team');
     } else {
-      toggleModal002();
+      toggleModal();
+      setisJoinVisible(true);
     }
   };
-
-  const selectTeam = (team) => {
-    setSelectedTeam(team.id === selectedTeam?.id ? null : team);
-  };
-
-  const addNewTeam = () => {
-    const id = parseInt(newTeamID);
-    const name = newTeamName.trim();
-    if (id && name) {
-      const newTeam = { id, name };
-      teamsData.push(newTeam);
-      setSelectedTeam(newTeam);
-      toggleModal();
+  const joiningTeam = () => {
+    const TeamName = newTeamName.trim();
+    if (coachId && TeamName) {
+      const userId = coachId;
+      const fetchTeams = async () => {
+        try {
+          const response = await axios.post('http://localhost:3000/sportSync/addToTeam', {
+            userId,
+            TeamName
+          });
+          if (response.status !== 200) {
+            Alert.alert(response.data.message);
+          }
+        } catch (error) {
+          console.error('Error fetching teams:', error);
+        }
+      };
+      fetchTeams();
+      joinTeam();
     } else {
       Alert.alert('Error', 'Please enter a valid Team ID and Team Name');
     }
   };
-
+  const addNewTeam = () => {
+    const TeamName = newTeamName.trim();
+    if (coachId && TeamName) {
+      const fetchTeams = async () => {
+        try {
+          const response = await axios.post('http://localhost:3000/sportSync/teamCreate', {
+            coachId,
+            TeamName
+          });
+          if (response.status !== 200) {
+            Alert.alert(response.data.message);
+          }
+        } catch (error) {
+          console.error('Error fetching teams:', error);
+        }
+      };
+      fetchTeams();
+      createTeam();
+    } else {
+      Alert.alert('Error', 'Please enter a valid Team ID and Team Name');
+    }
+  };
   const deleteTeam = () => {
     if (!selectedTeam) {
       Alert.alert('Error', 'No team is selected!');
     } else {
-      const deletedTeam = teamsData.find((team) => team.id === selectedTeam.id);
-
-      const updatedTeams = teamsData.filter(
-        (team) => team.id !== selectedTeam.id
-      );
-      teamsData.length = 0;
-      Array.prototype.push.apply(teamsData, updatedTeams);
+      const TeamName = selectedTeam.TeamName;
+      console.log(TeamName);
+      console.log(selectedTeam);
+    if (coachId && TeamName) {
+      const fetchTeams = async () => {
+        try {
+          const response = await axios.post('http://localhost:3000/sportSync/teamDelete', {
+            coachId,
+            TeamName
+          });
+          if (response.status !== 200) {
+            Alert.alert(response.data.message);
+          }
+        } catch (error) {
+          console.error('Error deleting teams:', error);
+        }
+      };
+      fetchTeams();
+    } else {
+      Alert.alert('Error', 'Please enter a valid Team Name');
+    }
+      const updatedTeams = teams.filter((team) => team._id !== selectedTeam._id);
+      teams.length = 0;
+      Array.prototype.push.apply(teams, updatedTeams);
       setSelectedTeam(null);
-
-      Alert.alert('Delete Team', `Deleted Team: ${deletedTeam.name}, its id: ${deletedTeam.id}`);
-      // The line above is waiting to be substituted to real functionality to delete data behind the scene, now it's just a fake pop-up
+      Alert.alert('Delete Team', `Deleted Team: ${selectedTeam.name}`);
     }
   };
-
   const leaveTeam = () => {
     if (!selectedTeam) {
       Alert.alert('Error', 'No team is selected!');
     } else {
-      Alert.alert('Leave Team', `Successfully left team: ${selectedTeam.name}, its id: ${selectedTeam.id}`);
-      // The line above is waiting to be substituted to real functionality to delete data behind the scene, now it's just a fake pop-up
-      setSelectedTeam(null); // but not this line!! This line modify the use state.
+      const updatedTeams = teams.filter((team) => team._id !== selectedTeam._id);
+      teams.length = 0;
+      Array.prototype.push.apply(teams, updatedTeams);
+      setSelectedTeam(null);
+      Alert.alert('Leave Team', `Left Team: ${selectedTeam.TeamName}`);
     }
   };
-
   const showTeamDetail = (team) => {
-    Alert.alert(
-      'Team Detail',
-      `${team.name} is selected and team id is ${team.id}`
-    );
-    // The line above is waiting to be substituted to real functionality to delete data behind the scene, now it's just a fake pop-up
+    Alert.alert('Team Detail', `${team.TeamName} is selected, coach is ${team.coachId}`);
   };
-
-  const joinExistingTeam = () => {
-    const id = parseInt(newTeamID);
-    const name = newTeamName.trim();
-
-    // Check if the teamID and teamName match an existing team
-    const existingTeam = teamsData.find(
-      (team) => team.id === id && team.name === name
-    );
-
-    if (existingTeam) {
-      Alert.alert(
-        'Success',
-        `Joining team ${existingTeam.name} successfully!`
-      );
-      // The line above is waiting to be substituted to real functionality to delete data behind the scene, now it's just a fake pop-up
-      setSelectedTeam(existingTeam);
-      toggleModal002();
-    } else {
-      Alert.alert(
-        'Fail to join',
-        'TeamID and TeamName do not match any team in the team list'
-      );
-    }
-  };
-
   return (
     <View style={styles.container}>
       <ScrollView style={styles.teamContainer}>
-        {teamsData.map((team) => (
+        {teams.map((team) => (
           <TouchableOpacity
-            key={team.id}
+            key={team._id}
             style={[
               styles.teamItem,
-              selectedTeam?.id === team.id && styles.selectedTeam,
+              selectedTeam?._id === team._id && styles.selectedTeam,
             ]}
             onPress={() => selectTeam(team)}
           >
-            <Text>{team.name}</Text>
-            {selectedTeam?.id === team.id && (
+            <Text>{team.TeamName}</Text>
+            {selectedTeam?._id === team._id && (
               <TouchableOpacity
                 style={styles.detailButton}
                 onPress={() => showTeamDetail(team)}
@@ -177,28 +182,24 @@ const Team = () => {
       </ScrollView>
       <View style={styles.footer}>
         <View style={styles.buttonContainer}>
+          <TouchableOpacity style={styles.button} onPress={fetchTeams}>
+            <Text>Refresh</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.button} onPress={createTeam}>
             <Text>Create Team</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.button} onPress={joinTeam}>
             <Text>Join Team</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={{ ...styles.button, backgroundColor: 'crimson' }}
-            onPress={deleteTeam}
-          >
+          <TouchableOpacity style={{ ...styles.button, backgroundColor: 'crimson' }} onPress={deleteTeam}>
             <Text>Delete Team</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={{ ...styles.button, backgroundColor: 'crimson' }}
-            onPress={leaveTeam}
-          >
+          <TouchableOpacity style={{ ...styles.button, backgroundColor: 'crimson' }} onPress={leaveTeam}>
             <Text>Leave Team</Text>
           </TouchableOpacity>
         </View>
       </View>
-      {/* The first model which is reponsible for renderring view of Create-Team-Pop-Up window */}
-      <Modal visible={isModal001Visible} animationType="slide">
+      <Modal visible={isModalVisible} animationType="slide">
         <View style={styles.modalContainer}>
           <Text>Enter Team ID and Team Name:</Text>
           <TextInput
@@ -211,32 +212,23 @@ const Team = () => {
             placeholder="Team Name"
             onChangeText={(text) => setNewTeamName(text)}
           />
-          <Button title="Add Team" onPress={addNewTeam} />
-          <Button title="Cancel" onPress={toggleModal001} />
+          <Button
+            title="Join Team"
+            style={{ display: isJoinVisible ? 'block' : 'none' }}
+            onPress={joiningTeam}
+          />
+          <Button
+            title="Create Team"
+            style={{ display: isCreateVisible ? 'block' : 'none' }}
+            onPress={addNewTeam}
+          />
+          <Button title="Cancel" onPress={toggleModal} />
         </View>
       </Modal>
-      {/* The second model which is reponsible for renderring view of Join-Team-Pop-Up window */}
-      <Modal visible={isModal002Visible} animationType="slide">
-        <View style={styles.modalContainer}>
-          <Text>Enter Team ID and Team Name:</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Team ID"
-            onChangeText={(text) => setNewTeamID(text)}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Team Name"
-            onChangeText={(text) => setNewTeamName(text)}
-          />
-          <Button title="Join Team" onPress={joinExistingTeam} />
-          <Button title="Cancel" onPress={toggleModal002} />
-        </View>
-      </Modal>
-      {/* These several models above, they are always rendered to the team page, but their visibility is controlled bu functions */}
     </View>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {
@@ -300,7 +292,4 @@ const styles = StyleSheet.create({
     padding: 5,
   },
 });
-
 export default Team;
-
-

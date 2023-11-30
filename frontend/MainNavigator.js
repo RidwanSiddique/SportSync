@@ -4,7 +4,6 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/Ionicons'; // Assuming you want to use Ionicons
 
 import CalenderPage from './Pages/CalenderPage';
-import SignUp from './Pages/SignUpPage';
 import Profile from './Pages/Profile';
 import Home from './Pages/HomePage';
 import Team from './Pages/Team';
@@ -29,15 +28,6 @@ const MainNavigator = () => {
         options={{
           tabBarIcon: ({ color, size }) => (
             <Icon name="ios-calendar" color={color} size={size} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="SignUpPage"
-        component={SignUp}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="ios-person-add" color={color} size={size} />
           ),
         }}
       />

@@ -1,18 +1,21 @@
+//userController.js
 const User = require("../models/userModels");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const validator = require("validator");
 const sendMail = require('../utils/sendMail');
-
+const fs = require('fs');
+const path = require('path');
 const createToken = (_id) => {
-  return jwt.sign({ _id }, process.env.TOKEN, { expiresIn: "3d" });
+  return jwt.sign({ _id }, process.env.SECRET, { expiresIn: "3d" });
 };
 // handles the home page
+// userController.js
 const userHome = async (req, res) => {
-  const userId = req.user._id; // Use the authenticated user's ID from req.use
+  const userId = req.user._id;
 
   try {
-    const user = await User.findById(userId).populate('games');
+    const user = await User.findById(userId).populate('teamId');
 
     if (!user) {
       return res.status(404).json({
@@ -20,14 +23,34 @@ const userHome = async (req, res) => {
         message: 'User not found',
       });
     }
+    console.log('User:', user);
+    console.log("User Team:", user.teamId);
+    // Check if user.teamId is defined before accessing its properties
+    const userTeam = user.teamId || {};
+    
+    // Assuming Team model has properties like TeamName, wins, losses, ties
+    const teamName = userTeam.TeamName || null;
+    console.log("Team name:", teamName);
+    const teamStats = {
+      wins: userTeam.wins || 0,
+      losses: userTeam.losses || 0,
+      ties: userTeam.ties || 0,
+    };
 
-    const userGames = user.games;
-    res.json({ success: true, games: userGames });
+    res.json({
+      success: true,
+      playerName: user.firstName + ' ' + user.lastName,
+      teamName,
+      teamStats,
+    });
   } catch (error) {
-    console.error('Error retrieving user games: ', error);
+    console.error('Error retrieving user home data: ', error);
     res.status(500).json({ success: false, error: 'Internal Server Error' });
   }
 };
+
+
+
 // user login handling
 // Handles user login logics
 const loginUser = async (req, res) => {
@@ -162,8 +185,42 @@ const registerUser = async (req, res) => {
 
 const userProfile = async (req, res) => {
   try {
+      const userId = req.params.userId;
+      // Find the user by their user ID
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          message: "User not found",
+        });
+      }
+      console.log('user info:', user);
+  
+    
+  
+      res.status(200).json({
+
+          userId: user._id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          profileImage: user.profileImage,
+          success: true,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error.message,
+      });
+  }
+};
+
+const updateProfile = async (req, res) => {
+  try {
     const userId = req.params.userId;
+    // Find the user by their user ID
     const user = await User.findById(userId);
+
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -171,14 +228,25 @@ const userProfile = async (req, res) => {
       });
     }
 
+    // Update the user's profile with the provided data
+    user.firstName = req.body.firstName || user.firstName;
+    user.lastName = req.body.lastName || user.lastName;
+    user.email = req.body.email || user.email;
+
+    // Check if a profile image URL is provided in the request body
+    if (req.body.profileImage) {
+      user.profileImage = req.body.profileImage;
+    }
+
+    // Save the updated user profile
+    await user.save();
+
     res.status(200).json({
-      user: {
-        userId: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        // Add other user properties here
-      },
+      userId: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      profileImage: user.profileImage,
       success: true,
     });
   } catch (error) {
@@ -188,6 +256,53 @@ const userProfile = async (req, res) => {
     });
   }
 };
+
+// Add a new route for updating the user's profile image
+
+
+const updateUserProfileImage = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const base64Image = req.body; // Since you are sending the image directly in the request body
+
+    // Split the base64 string into the content type and the actual base64 string
+    const base64Data = base64Image.split(';base64,').pop();
+
+    // Create a buffer from the base64 string
+    const imageBuffer = Buffer.from(base64Data, 'base64');
+
+    // Define the local directory and file path where the image will be saved
+    const imageDirectory = path.join(__dirname, '../uploads');
+    const imagePath = path.join(imageDirectory, `profile_${userId}.jpg`);
+
+    // Save the image to the local directory
+    fs.writeFileSync(imagePath, imageBuffer);
+
+    // Save the file path in the database
+    user.profileImage = `uploads/profile_${userId}.jpg`;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Profile image updated successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
 
 const forgotPassword = async (req, res) => {
   try {
@@ -275,6 +390,25 @@ const verify = async (req, res) => {
   }
 };
 
+const logout = async (req, res) => {
+  try {
+    // Clear the token cookie
+    res.clearCookie('token', {
+      httpOnly: true,
+      secure: true, // Enable this if using HTTPS
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Logged Out!',
+    });
+  } catch (e) {
+    console.error('Logout error:', e);
+    res.status(500).json({ success: false, message: 'Internal Server Error' });
+  }
+};
+
+
 module.exports = {
   loginUser,
   registerUser,
@@ -283,4 +417,7 @@ module.exports = {
   forgotPassword,
   resetPassword,
   verify,
+  updateUserProfileImage,
+  updateProfile,
+  logout,
 };

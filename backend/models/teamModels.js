@@ -10,6 +10,10 @@ const Teams = new mongoose.Schema({
         type: String,
         required: true
     },
+    games: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Game' // Assuming your Game model is named 'Game'
+    }],
 }, {timestamps: true});
 
 const userTeams = new mongoose.Schema({
@@ -17,10 +21,10 @@ const userTeams = new mongoose.Schema({
         type: String,
         required: true
     },
-    userId:{
-        type:String,
-        required:true
-    },
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User', // Reference to the User model
+      },
 }, {timestamps: true})
 
 const teamStats = new mongoose.Schema({

@@ -4,6 +4,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'reac
 import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
 import { AuthContext } from '../context/authContext'; 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SignIn = () => {
   const [email, setEmail] = useState('');
@@ -13,14 +14,24 @@ const SignIn = () => {
 
   const handleSignIn = async () => {
     try {
+      
       const response = await axios.post('http://localhost:3000/sportSync/login', {
         email,
         password,
       });
-
-      if (response.data.message === 'passed') {
-        // Login successful, dispatch LOGIN action
-        dispatch({ type: 'LOGIN', payload: { token: response.data.token } });
+      if (response.data.success) {
+      
+        const userData = {
+          userId: response.data.userId,
+          email: response.data.email,
+          token: response.data.token,
+        };
+        // Store user data in AsyncStorage
+        await AsyncStorage.setItem('user', JSON.stringify(userData));
+        dispatch({ type: 'LOGIN', payload: userData });
+        // Clear email and password fields after successful login
+        setEmail('');
+        setPassword('');
         Alert.alert('Login Successful', 'Welcome to SportSync!');
         // Navigate to the main navigator
         navigation.navigate('MainNavigator');
@@ -58,7 +69,8 @@ const SignIn = () => {
         }
         else {
           // Other server errors
-          Alert.alert('Server Error', `Server responded with an error: ${error.response.data}`);
+          console.log('Error Response Data:', JSON.stringify(error.response.data, null, 2));
+          console.log('Error Request:', JSON.stringify(error.request, null, 2));
         }
       } else if (error.request) {
         // The request was made but no response was received
