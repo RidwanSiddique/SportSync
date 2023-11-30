@@ -1,37 +1,82 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState, useContext } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
+import { AuthContext } from '../context/authContext';
 
 const SignUp = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-   // Get the navigation object
   const navigation = useNavigation();
-  const handleSignUp = () => {
-    axios
-      .post('https://172.16.1.177:3000/sportSync/register', {
+  const { dispatch } = useContext(AuthContext);
+
+  const handleSignUp = async () => {
+    try {
+      const response = await axios.post('http://localhost:3000/sportSync/register', {
         firstName,
         lastName,
         email,
         password,
-      })
-      .then((response) => {
-        if (response.data.message === 'passed') {
-          // Registration successful, navigate to a different screen
-          navigation.navigate('SignIn'); // Change 'SignIn' to the login screen
-        } else {
-          // Registration failed, show an error message
-          console.log('Registration failed');
-        }
-      })
-      .catch((error) => {
-        // Handle any errors
-        console.error('Error:', error);
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
+
+      if (response.data.message === 'passed') {
+        // Registration successful, dispatch LOGIN action
+        dispatch({ type: 'LOGIN', payload: { token: response.data.token } });
+
+        Alert.alert('Registration Successful','Please Sign In now!');
+        // Navigate to a different screen (e.g., Home)
+        navigation.navigate('SignIn');
+      } else {
+        // registration failed, show an error message
+        Alert.alert('Login Failed', 'Please try again.');
+      }
+    } catch (error) {
+      // Handle specific errors and show appropriate alerts
+      if (error.response) {
+        if (error.response.status === 401) {
+          // Unauthorized (wrong email or password)
+          Alert.alert('Sign Up Failed', 'Email already exists. Please Sign In!');
+
+          navigation.navigate('SignIn');
+        } 
+        else if (error.response.status === 400) {
+          // empty email and password field.
+          Alert.alert('Sign Up Failed', 'All Fields must be filled!');
+        }
+        else if (error.response.status === 405) {
+          // empty password field.
+          Alert.alert('Sign Up Failed', 'Must enter a password!');
+        }
+        else if (error.response.status === 406) {
+          // empty email field.
+          Alert.alert('Sign Up Failed', 'Must enter an email!');
+        }
+        else if (error.response.status === 407) {
+          // empty email field.
+          Alert.alert('Sign Up Failed', 'Invalid email! Please enter a valid email.');
+        }
+        else {
+          // Other server errors
+          Alert.alert('Server Error', `Server responded with an error: ${error.response.data}`);
+        }
+      } else if (error.request) {
+        // The request was made but no response was received
+        Alert.alert('Network Error', 'No response received from the server. Please check your network connection.');
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        Alert.alert('Request Error', `Error setting up the request: ${error.message}`);
+      }
+  
+      console.error('Error:', error);
+    }
   };
+
 
   const handleSignInPress = () => {
     navigation.navigate('SignIn');

@@ -1,24 +1,18 @@
-const  createTransport = require("nodemailer");
+const nodemailer = require("nodemailer");
 
-const sendMail = async(email,subjectLine,message) => {
+const sendMail = async (email, subjectLine, message) => {
+  var transport = nodemailer.createTransport({
+    sendmail: true,
+    newline: "unix",
+    path: "/usr/sbin/sendmail", // Path to the sendmail command on your system
+  });
 
-    var transport = createTransport({
-        host: process.env.MAIL_HOST,
-        port: process.env.MAIL_PORT,
-        auth: {
-          user: process.env.MAIL_USER,
-          pass: process.env.MAIL_PASS
-        }
-      });
+  await transport.sendMail({
+    from: process.env.MAIL_USER,
+    to: email,
+    subject: subjectLine,
+    text: message,
+  });
+};
 
-
-      await transport.sendMail({
-        from: process.env.MAIL_USER,
-        to: email,
-        subject: subjectLine,
-        text: message
-      })
-
-}
-
-module.exports = {sendMail};
+module.exports = sendMail;

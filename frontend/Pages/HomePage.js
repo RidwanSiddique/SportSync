@@ -1,116 +1,114 @@
-import React, { useState, useEffect } from 'react';
+// HomePage.js
+
+import React, { useState, useEffect, useContext } from 'react';
 import { View, Text, Button, StyleSheet, ScrollView, Image } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { AuthContext } from '../context/authContext';
+import axios from 'axios';
 
-// Simulated user data
-const fakeUserId = 'fakeUserId123';
-
-// Sample data
-const upcomingGamesData = [
-  { id: 1, team: 'Team A', date: '2023-11-15' },
-  { id: 2, team: 'Team B', date: '2023-11-20' },
-  { id: 3, team: 'Team C', date: '2023-11-25' },
-];
-
-const previousGamesData = [
-  { id: 1, team: 'Team X', result: 'W' },
-  { id: 2, team: 'Team Y', result: 'L' },
-  { id: 3, team: 'Team Z', result: 'T' },
-];
-
-const teamStats = { wins: 5, losses: 3, ties: 2 };
-
-const generateDummyText = (length) => {
-  return Array.from({ length }, (_, index) => `Dummy Text ${index + 1}`).join(' ');
-};
-
-const Home = ({ navigation }) => {
+const Home = () => {
   const [selectedTeam, setSelectedTeam] = useState('Your Team');
-  const [lastStats, setLastStats] = useState(null);
   const [userHome, setUserHome] = useState(null);
+  const [games, setGames] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const navigation = useNavigation();
+  const { user, dispatch } = useContext(AuthContext);
 
   useEffect(() => {
-    const fetchUserHome = async () => {
+    const fetchData = async () => {
       try {
-        // Simulating data fetching by using a fake user ID
-        // In a real app, you would replace this with an actual API call
-        const response = await fetch(`http://172.16.1.177:3000/sportSync/home/${fakeUserId}`);
-        const data = await response.json();
+        if (!user || !user.userId) {
+          console.log('User state or user ID is undefined. Redirecting to SignIn.');
+          navigation.navigate('SignIn');
+          return;
+        }
 
-        if (data.success) {
-          setUserHome(data.user);
+        // Fetch user home data
+        const userHomeResponse = await axios.get(`http://localhost:3000/sportSync/home/${user.userId}`, {
+          headers: {
+            Authorization: `Bearer ${user.token}`,
+          },
+        });
+        console.log("User Home response:", userHomeResponse.data); // Access data directly
+        console.log("TeamId:", userHomeResponse.data.teamId); // Log teamId
+        console.log("TeamName:", userHomeResponse.data.teamId?.TeamName); // Log TeamName 
+        if (userHomeResponse.data.success) {
+          setUserHome(userHomeResponse.data);
         } else {
-          console.log(data.message);
-          navigation.goBack();
+          console.log('Error fetching user home data');
+        }
+
+        // Fetch games data
+        const gamesResponse = await axios.get(`http://localhost:3000/sportSync/ShowGames`, {
+          headers: {
+            Authorization: `Bearer ${user.token}`,
+          },
+        });
+        console.log("Games response:", gamesResponse.data); // Access data directly
+        // Check the HTTP status code for success (status codes in the range of 200-299)
+        if (gamesResponse.status >= 200 && gamesResponse.status < 300) {
+          // Assuming a successful response, access individual games or perform other actions
+          setGames(gamesResponse.data);
+        } else {
+          console.log('Error in games data:', gamesResponse.data.message);
         }
       } catch (error) {
-        console.error('Error:', error);
+        console.error('Error fetching games data:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchUserHome();
+    if (!user || !user.userId) {
+      console.log('User not authenticated');
+      navigation.navigate('SignIn');
+    } else {
+      fetchData();
+    }
+  }, [selectedTeam, navigation, user, dispatch]);
 
-    const fetchLastStats = (team) => {
-      return { goals: 10, assists: 5, possession: '60%' };
-    };
-
-    const stats = fetchLastStats(selectedTeam);
-    setLastStats(stats);
-  }, [selectedTeam, navigation]);
-
-  // Replace with actual team logo image source
-  const teamLogoSource = require('./image.png');
-
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
+  console.log('Games:', games);
   return (
     <ScrollView style={styles.container}>
       <View style={styles.headerContainer}>
-        <Image source={teamLogoSource} style={styles.teamLogo} />
-        <Text style={styles.welcomeMessage}>Welcome, {userHome?.playerName}!</Text>
-        <Text style={styles.teamName}>{userHome?.teamName}</Text>
-      </View>
+            {/* Replace with the actual team logo source */}
+            <Text style={styles.welcomeMessage}>Welcome, {userHome?.playerName || 'Guest'}!</Text>
+            <Text style={styles.teamName}>{userHome?.teamId?.TeamName}</Text>
+          </View>
 
+      {/* Display Team Stats Summary */}
+      <View style={styles.container}>
+      <Text style={styles.sectionTitle}>Team Stats Summary (W/L/T):</Text>
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Upcoming Games:</Text>
-        {upcomingGamesData.map((game) => (
-          <Text key={game.id} style={styles.gameItem}>{`${game.team} - ${game.date}`}</Text>
-        ))}
-        <Text>{generateDummyText(20)}</Text>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Previous Games:</Text>
-        {previousGamesData.map((game) => (
-          <Text key={game.id} style={styles.gameItem}>{`${game.team} - Result: ${game.result}`}</Text>
-        ))}
-        <Text>{generateDummyText(20)}</Text>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Last Stats Against {selectedTeam}:</Text>
-        {lastStats ? (
-          <Text style={styles.statsText}>{`Goals: ${lastStats.goals}, Assists: ${lastStats.assists}, Possession: ${lastStats.possession}`}</Text>
-        ) : (
-          <Text style={styles.noStatsText}>No stats available</Text>
-        )}
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Team Stats Summary (W/L/T):</Text>
-        <Text style={styles.statsText}>{`Wins: ${teamStats.wins}, Losses: ${teamStats.losses}, Ties: ${teamStats.ties}`}</Text>
-      </View>
-
-      <View style={styles.buttonContainer}>
-        <Button
-          title="Change Team"
-          onPress={() => {
-            setSelectedTeam(selectedTeam === 'Your Team' ? 'Opponent Team' : 'Your Team');
-          }}
-        />
-      </View>
-
-      <View style={styles.navigationContainer}>
-        <Button style={styles.navigationButton} title="Feature 1" onPress={() => console.log('Navigate to Feature 1')} />
-        <Button style={styles.navigationButton} title="Feature 2" onPress={() => console.log('Navigate to Feature 2')} />
-      </View>
+            <Text style={styles.statsText}>{`Wins: ${userHome?.teamStats?.wins || 0}, Losses: ${userHome?.teamStats?.losses || 0}, Ties: ${userHome?.teamStats?.ties || 0}`}</Text>
+          </View>
+          </View>
+      {games.length > 0 ? (
+        <View style={styles.container}>
+          <Text style={styles.sectionTitle}>Games:</Text>
+          {games.map((game) => (
+            <View key={game._id} style={styles.card}>
+              
+              <Text>{game.name}</Text>
+              <Text>Date: {game.date}</Text>
+              <Text>Time: {game.time}</Text>
+              <Text>Teams: {game.team1} vs {game.team2}</Text>
+            </View>
+          ))}
+        </View>
+      ) : (
+        <View style={styles.noGamesContainer}>
+          <Text>No games available.</Text>
+        </View>
+      )}
     </ScrollView>
   );
 };
@@ -160,37 +158,23 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 15,
   },
-  gameItem: {
-    fontSize: 18,
-    color: '#555',
-    marginTop: 10,
-  },
   statsText: {
     fontSize: 18,
     color: '#555',
     marginTop: 10,
   },
-  noStatsText: {
-    fontSize: 18,
-    color: '#f00',
-    marginTop: 10,
+  gamesContainer: {
+    marginBottom: 20,
   },
-  buttonContainer: {
-    marginTop: 30,
-    alignItems: 'center',
-  },
-  navigationContainer: {
-    marginTop: 30,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  navigationButton: {
-    width: '45%',
-    backgroundColor: '#4CAF50', // Green background color
+  gameCard: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
     padding: 10,
-    borderRadius: 5,
+    marginBottom: 10,
   },
 });
+
 
 
 export default Home;

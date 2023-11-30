@@ -5,10 +5,10 @@ const Game = require('../models/gameModels');
 const createGame = async (req, res) => {
 	console.log('called createGame');
 	// need place but that's for later
-	const {name, team, time} = req.body
+	const {name, team1, team2, date, time} = req.body
 
 	// no empty fields, place to be added later
-	if(!name || !team || !time) {
+	if(!name || !team1 || !team2 || !time || !date) {
 		return res.status(400).json({
 			success: false,
 			message: "one of the fields is blank"
@@ -19,10 +19,10 @@ const createGame = async (req, res) => {
 	try{
 		// creating the document and placing into database 
 		console.log('Request body: ', req.body);
-		const game = await Game.create({name, team, time});
+		const game = await Game.create({name, team1, team2, date, time});
 		console.log('Game created: ', game);
 
-		res.status(201).json({message: "Game created successfully", game});
+		res.status(200).json({message: "Game created successfully", game});
 	} catch (error) {
 		console.error("Error creating game: ", error);
 		res.status(500).json({error: "Internal Server Error" });		
@@ -38,7 +38,7 @@ const showAllGames = async (req, res) => {
 		const games = await Game.find();
 		res.json(games);
 	} catch (error) {
-		console.error('Error retrieving games: ', error);
+		console.log('Error retrieving games: ', error);
 		res.status(500).json({error: "Internal Server Error "});			
 	}
 };

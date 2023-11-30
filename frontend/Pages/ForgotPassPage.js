@@ -1,77 +1,35 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Modal, Button, StyleSheet } from 'react-native';
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  forgotPasswordText: {
-    fontSize: 20,
-    marginBottom: 20,
-  },
-  input: {
-    height: 40,
-    borderColor: 'gray',
-    borderWidth: 1,
-    marginBottom: 10,
-    width: 250,
-    paddingHorizontal: 10,
-    borderRadius: 5,
-  },
-  button: {
-    backgroundColor: '#007BFF',
-    padding: 10,
-    borderRadius: 5,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 10,
-    elevation: 5,
-    alignItems: 'center',
-  },
-  modalText: {
-    fontSize: 18,
-    marginBottom: 10,
-  },
-  modalButton: {
-    marginTop: 15,
-  },
-});
+import axios from 'axios'; // Import axios for making HTTP requests
 
 const ForgotPasswordScreen = ({ navigation }) => {
-  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
 
-  const forgotPasswordAPI = (username, email) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        resolve();
-      }, 2000);
-    });
+  const forgotPasswordAPI = (email) => {
+    // Make a POST request to the forgotPassword API endpoint
+    return axios.post('http://localhost:3000/sportSync/forgotPassword', { email })
+      .then(response => {
+        // Return a Promise that resolves when the OTP is sent successfully
+        return Promise.resolve(response.data);
+      })
+      .catch(error => {
+        // Return a Promise that rejects with the error
+        return Promise.reject(error);
+      });
   };
 
   const handleForgotPassword = async () => {
-    if (!username || !email) {
-      alert('Please enter both username and email.');
+    if (!email) {
+      alert('Please enter your email.');
       return;
     }
 
     try {
-      await forgotPasswordAPI(username, email);
+      // Call the forgotPasswordAPI function with the provided email
+      const result = await forgotPasswordAPI(email);
+
+      // If the OTP is sent successfully, display the modal
       setModalVisible(true);
     } catch (error) {
       console.error('Forgot Password Failed', error);
@@ -82,24 +40,19 @@ const ForgotPasswordScreen = ({ navigation }) => {
   const handleCloseModal = () => {
     setModalVisible(false);
     // Add navigation logic here to go back to the sign-in page
-    navigation.navigate('SignIn'); // Replace 'SignIn' with the actual route name for your sign-in page
+    navigation.navigate('OtpPage'); // Replace 'SignIn' with the actual route name for your sign-in page
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.forgotPasswordText}>Forgot Password</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Username"
-        onChangeText={(text) => setUsername(text)}
-      />
+      <Text style={styles.heading}>Forgot Password</Text>
       <TextInput
         style={styles.input}
         placeholder="Email"
         onChangeText={(text) => setEmail(text)}
       />
       <TouchableOpacity onPress={handleForgotPassword}>
-        <View style={styles.button}>
+        <View style={styles.signInButton}>
           <Text style={styles.buttonText}>Reset Password</Text>
         </View>
       </TouchableOpacity>
@@ -107,11 +60,11 @@ const ForgotPasswordScreen = ({ navigation }) => {
       <Modal visible={modalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalText}>Password reset successful!</Text>
+            <Text style={styles.modalText}>Verification Code Sent!</Text>
             <Button
               title="OK"
               onPress={handleCloseModal}
-              style={styles.modalButton} // Apply the new style to the modal button
+              style={styles.modalButton}
             />
           </View>
         </View>
@@ -120,4 +73,59 @@ const ForgotPasswordScreen = ({ navigation }) => {
   );
 };
 
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+  },
+  heading: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  input: {
+    height: 40,
+    borderColor: 'gray',
+    borderWidth: 1,
+    marginBottom: 20,
+    padding: 10,
+    width: '80%',
+  },
+  signInButton: {
+    backgroundColor: '#007BFF',
+    padding: 15,
+    borderRadius: 8,
+    width: '80%',
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    padding: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 4,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  modalText: {
+    marginBottom: 12,
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  modalButton: {
+    marginTop: 10,
+  },
+});
 export default ForgotPasswordScreen;
