@@ -13,169 +13,168 @@ import { Agenda } from 'react-native-calendars';
 import RNModal from 'react-native-modal';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import RNPickerSelect from 'react-native-picker-select';
-import axios from 'axios'
+import axios from 'axios';
 
 const window = Dimensions.get('window');
+
+// Replace with your actual IP or host name
+const IP = process.env.EXPO_PUBLIC_IP;
 
 const CalenderPage = () => {
   const [isModalVisible, setModalVisible] = useState(false);
   const [matchName, setMatchName] = useState('');
-  // where all the teams are stored 
-  const [teams, setTeams] = useState([]);
-  const [yourTeam, setYourTeam] = useState(null);
-  const [enemyTeam, setEnemyTeam] = useState(null);
+  const [teams, setTeams] = useState([]); // Store all teams
+  const [userTeams, setUserTeams] = useState([]); // Store user's teams
+  const [yourTeam, setYourTeam] = useState(null); // Selected user's team
+  const [enemyTeam, setEnemyTeam] = useState(null); // Selected enemy team
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showUpcomingMatches, setShowUpcomingMatches] = useState(true);
-  // where the matches are all stored, use effect
-  const [data, setData] = useState({});
- // The IP of your local machine	
-  const IP = '10.237.214.56';
+  const [data, setData] = useState({}); // Store fetched match data
 
-  /*const removeMatch = (date, matchIndex) => {
-    setData((prevData) => {
-      const newData = { ...prevData };
-  
-      if (newData[date] && newData[date].length > matchIndex) {
-        newData[date] = newData[date].filter((_, index) => index !== matchIndex);
+  // Fetch match data from the server
+  async function fetchMatch() {
+    try {
+      const response = await fetch(`http://${IP}:3000/sportSync/ShowGames`);
+      if (!response.ok) {
+        throw new Error(`Network response was not ok: ${response.status}`);
       }
-  
-      return newData;
-    });
-  };
-  <TouchableOpacity onPress={() => removeMatch(date, index)}>
-          <Text style={{ color: 'red' }}>Remove Match</Text>
-        </TouchableOpacity>
-  */
+      const fetchedData = await response.json();
+      const formattedData = {};
 
- /* function to fetch the data from the database */
- async function fetchMatch() {
-	try {
-		const response = await fetch(`http://${IP}:3000/sportSync/ShowGames`);
-		if(!response.ok) {
-			throw new Error(`Network response was not ok: ${response.status}`);
-		}
-		const fetchedData = await response.json();
-		console.log(fetchedData);
-		const formattedData = {};
-		
-		// Group the fetched data by date ("YYYY-MM-DD" format)
-		fetchedData.forEach(match => {
-			const matchDate = match.date;
-			console.log(match.date)
+      // Group the fetched data by date ("YYYY-MM-DD" format)
+      fetchedData.forEach((match) => {
+        const matchDate = match.date;
 
-			if(!formattedData[matchDate]){
-				formattedData[matchDate] = [];
-			}
+        if (!formattedData[matchDate]) {
+          formattedData[matchDate] = [];
+        }
 
-			// formatting the match object
-			const formattedMatch = {
-				name: match.name,
-				team1: match.team1,
-				team2: match.team2,
-				time: match.time
-			};
-			// sorting by match date
-			formattedData[matchDate].push(formattedMatch);
-		});
+        // Format the match object
+        const formattedMatch = {
+          name: match.name,
+          team1: match.team1,
+          team2: match.team2,
+          time: match.time,
+        };
+        // Sort by match date
+        formattedData[matchDate].push(formattedMatch);
+      });
 
-		// Update the array with database matches
-		setData(prevData => ({ ...prevData, ...formattedData})); // nice way to append
-		// setData(formattedData);
-	} catch (error) {
-		console.error("Error fetching data: ", error);
-	}
- };
+      // Update the array with database matches
+      setData((prevData) => ({ ...prevData, ...formattedData }));
+    } catch (error) {
+      console.error('Error fetching data: ', error);
+    }
+  }
 
- async  function fetchTeams() {
-	try{
-		const response = await fetch(`http://${IP}:3000/sportSync/showTeams`);
-		if(!response.ok) {
-			throw new Error(`Network response was not ok: ${response.status}`);
-		}
-		//getting it into the proper format
-		const data = await response.json();
-		console.log(data);
-		setTeams(data);
-	} catch(error) {
-		console.error('Error fetching teams: ', error);
-	}
- };
+  // Fetch teams data from the server
+  async function fetchTeams() {
+    try {
+      const response = await fetch(`http://${IP}:3000/sportSync/showTeams`);
+      if (!response.ok) {
+        throw new Error(`Network response was not ok: ${response.status}`);
+      }
 
- // fetch data on a page load
- useEffect(() => { 
-	 fetchMatch();
-	 fetchTeams(); 
- }, []); // empty array to ensure it only rans once per page load;
-  
+      const data = await response.json();
+      setTeams(data);
 
+      // Hardcoded user ID (temporary solution)
+      const userId = '6544586e906e3e00fa50bdbb';
+
+      const response2 = await axios.get(`http://${IP}:3000/sportSync/getUserTeams`, { params: { userId: userId } });
+      const { message, teams: userTeamsData } = response2.data;
+      if (message === 'Not on any teams') {
+        console.log('User is not on any teams');
+      } else {
+        console.log(`This is data2: ${JSON.stringify(userTeamsData)}`);
+        setUserTeams(userTeamsData);
+      }
+    } catch (error) {
+      console.error('Error fetching teams: ', error);
+    }
+  }
+
+  // Fetch data on page load
+  useEffect(() => {
+    fetchMatch();
+    fetchTeams();
+  }, []); // Empty array to ensure it only runs once per page load;
+
+  // Render each item in the Agenda component
   const renderItem = (item, date, index) => {
     return (
       <View style={styles.item}>
         <Text>Match Name: {item.name}</Text>
         <Text>Your Team: {item.team1}</Text>
-	<Text>Team against: {item.team2} </Text>   
+        <Text>Team against: {item.team2}</Text>
         <Text>Time: {item.time}</Text>
       </View>
     );
   };
 
+  // Toggle the visibility of the modal
   const toggleModal = () => {
     setModalVisible(!isModalVisible);
   };
 
+  // Handle the change of the selected date
   const onChangeDate = (event, selectedDate) => {
     const currentDate = selectedDate || selectedDate.nativeEvent.timestamp;
     setShowDatePicker(Platform.OS === 'ios');
     setSelectedDate(new Date(currentDate));
   };
 
+  // Show the datepicker
   const showDatepicker = () => {
     setShowDatePicker(true);
     setShowTimePicker(false);
   };
 
+  // Show the timepicker
   const showTimepicker = () => {
     setShowTimePicker(true);
     setShowDatePicker(false);
   };
 
+  // Handle the change of the selected time
   const onChangeTime = (event, selectedTime) => {
     setShowTimePicker(false);
     setSelectedDate(selectedTime || new Date());
   };
 
-   // where you create a new match 	
+  // Schedule a new match
   const scheduleMatch = async () => {
     setModalVisible(false);
 
-     const newMatch = {
+    const newMatch = {
       name: matchName,
       team1: yourTeam,
-      team2: enemyTeam, 
+      team2: enemyTeam,
       date: selectedDate.toISOString().split('T')[0],
-      time: selectedDate.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'})
+      time: selectedDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
     };
-    
-    try{
-	const response = await axios.post(`http://${IP}:3000/sportSync/CreateGame`, newMatch, {
-		headers: {'Content-Type': 'application/json'}}); 
-	    if(response.status !== 200){
-		console.log("response not ok");
-	    }
-    } catch(error){
-	console.error('Error scheduling match', error);
-	throw error; 
+
+    try {
+      const response = await axios.post(`http://${IP}:3000/sportSync/CreateGame`, newMatch, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (response.status !== 200) {
+        console.log('Response not ok');
+      }
+    } catch (error) {
+      console.error('Error scheduling match', error);
+      throw error;
     }
-    
-    console.log(data); 	  
+
+    console.log(data);
     const dateString = selectedDate.toISOString().split('T')[0];
 
     setData((prevData) => {
       const newData = { ...prevData };
- 
-      // conditionally for how the data will be inputted. 
+
+      // Conditionally for how the data will be inputted.
       if (newData[dateString]) {
         newData[dateString].push(newMatch);
       } else {
@@ -184,16 +183,24 @@ const CalenderPage = () => {
 
       return newData;
     });
-
   };
 
- /* making an array of formatted teams */ 
+  // Create an array of formatted teams
   const teamItems = teams.map((team) => ({
-	label: team.TeamName,
-	value: team.TeamName
+    label: team.TeamName,
+    value: team.TeamName,
   }));
- 
 
+  console.log(`This is the user teams: ${userTeams}`);
+  console.log('User teams in strings:', JSON.stringify(userTeams));
+  const userTeam = userTeams.map((user_team) => ({
+    label: user_team.TeamName,
+    value: user_team.TeamName,
+  }));
+
+  console.log(`This is the user team: ${userTeam}`);
+
+  // Render the DateTimePicker component
   const renderDateTimePicker = () => {
     if (showDatePicker || showTimePicker) {
       return (
@@ -210,15 +217,27 @@ const CalenderPage = () => {
     return null;
   };
 
+  // Filter the data based on whether it's upcoming or past matches
   const filterData = () => {
     const currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0); // Set time to midnight
     const filteredData = {};
 
     for (const date in data) {
       const matches = data[date];
-      const isUpcoming = new Date(date) >= currentDate;
+      const matchDate = new Date(date);
+      const isToday = matchDate.toISOString().split('T')[0] === currentDate.toISOString().split('T')[0];
+      var isUpcoming;
 
-      if ((showUpcomingMatches && isUpcoming) || (!showUpcomingMatches && !isUpcoming)) {
+      if (matchDate > currentDate) {
+        isUpcoming = true;
+      } else if (matchDate < currentDate) {
+        isUpcoming = false;
+      } else if (matchDate.getHours() < currentDate.getHours()) {
+        isUpcoming = false;
+      }
+
+      if ((showUpcomingMatches && (isUpcoming || isToday)) || (!showUpcomingMatches && !isUpcoming && !isToday)) {
         filteredData[date] = matches;
       }
     }
@@ -273,7 +292,7 @@ const CalenderPage = () => {
           />
           <RNPickerSelect
             placeholder={{ label: 'Select Your Team', value: null }}
-	    items={teamItems}
+            items={userTeam}
             value={yourTeam}
             onValueChange={(value) => setYourTeam(value)}
             style={{
@@ -281,9 +300,9 @@ const CalenderPage = () => {
               inputAndroid: styles.input,
             }}
           />
-	  <RNPickerSelect
+          <RNPickerSelect
             placeholder={{ label: 'Select enemy Team', value: null }}
-	    items={teamItems}
+            items={teamItems}
             value={enemyTeam}
             onValueChange={(value) => setEnemyTeam(value)}
             style={{
@@ -354,6 +373,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 20,
   },
+  removeButton: {
+    backgroundColor: '#007BFF',
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+  },
   modal: {
     justifyContent: 'flex-end',
     margin: 0,
@@ -382,3 +409,4 @@ const styles = StyleSheet.create({
 });
 
 export default CalenderPage;
+

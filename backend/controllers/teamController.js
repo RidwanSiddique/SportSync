@@ -1,7 +1,7 @@
 
 const { Team, userTeam, TeamStats } = require("../models/teamModels");
 
-
+// createsa a team to put in the database, then whoever creates it is the coach 
 const createTeam = async (req, res) => {
   // const {TeamName, coachId } = req.body;
   const TeamName = req.body.TeamName;
@@ -40,6 +40,7 @@ const createTeam = async (req, res) => {
   }
 };
 
+//this endpoint is in charge of deleteing teams from the database
 
 const deleteTeam = async (req, res) => {
   const { TeamName, coachId } = req.body;
@@ -73,6 +74,7 @@ const deleteTeam = async (req, res) => {
   }
 };
 
+//deals with adding a user to the team if said user and team exists
 const addToTeam = async (req, res) => {
   const { TeamName, userId } = req.body;
   console.log(TeamName)
@@ -109,6 +111,8 @@ const addToTeam = async (req, res) => {
   }
 };
 
+//removes uesr from the team if the user is not the coach and they are already on the team
+
 const removeFromTeam = async (req, res) => {
   const { TeamName, userId } = req.body;
 
@@ -120,7 +124,16 @@ const removeFromTeam = async (req, res) => {
   }
 
   try {
-    const existingTeam = await Team.findOne({ TeamName, userId });
+    const coachId = userId;
+    const isCoach = await Team.findOne({TeamName, coachId});
+    console.log("the result :", isCoach);
+    if (isCoach){
+      console.log("Blocked");
+      res.status(300).json({success:false, message: "You are the coach, cannot leave the team "});
+    }else{
+
+    const existingTeam = await userTeam.findOne({ TeamName, userId });
+    console.log(existingTeam)
 
     if (!existingTeam) {
       return res.status(404).json({
@@ -133,12 +146,14 @@ const removeFromTeam = async (req, res) => {
 
     res.status(200).json({
       message: "Removed From Team",
-    });
+    });}
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 };
 
+
+//updates the stats of a team 
 
 const updateStats = async (req, res) => {
   const { TeamName, wins, loss, ties, coachId } = req.body;
@@ -167,6 +182,7 @@ const updateStats = async (req, res) => {
   }
 };
 
+//show all teams in the database
 const showAllTeams = async (req,res) => {
 	try {
 		const teams = await Team.find();
@@ -178,6 +194,7 @@ const showAllTeams = async (req,res) => {
 	}
 };
 
+//get the stats of a specific team
 const getStats = async (req,res) =>{
   const{TeamName} = req.body;
   try{
@@ -195,10 +212,10 @@ const getStats = async (req,res) =>{
   }
 }
 
-
+//gets all teams that a user team is on
 const getUserTeams = async (req, res) => {
   const { userId } = req.query;
-  console.log(userId);
+  console.log(`This is your user ID ${userId}`);
   try {
     const teams = await userTeam.find({ userId });
     if (!teams || teams.length === 0) {
@@ -210,7 +227,7 @@ const getUserTeams = async (req, res) => {
     res.status(500).json({ success: false, message: "Error with getting user Teams", error: error.message });
   }
 };
-
+//gets all team members on a specific team. 
 const getTeamMembers= async (req,res) => {
   const {TeamName} = req.body;
   try{

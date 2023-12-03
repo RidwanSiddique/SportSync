@@ -82,6 +82,11 @@ const handleUploadProfileImage = async () => {
     console.error('Error picking an image', error);
   }
 } 
+
+useEffect(() => {
+  // update user data on update profile button when the component mounts
+  handleSubmit();
+}, []);
 const handleSubmit = async () => {
   // Construct the user's profile data as a JSON object
   const profileData = {

@@ -15,8 +15,7 @@ const userHome = async (req, res) => {
   const userId = req.user._id;
 
   try {
-    const user = await User.findById(userId).populate('teamId');
-
+    const user = await User.findOne({_id: userId}).populate('teamId')
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -247,6 +246,7 @@ const updateProfile = async (req, res) => {
       lastName: user.lastName,
       email: user.email,
       profileImage: user.profileImage,
+      teamId: user.teamId,
       success: true,
     });
   } catch (error) {
