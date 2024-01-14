@@ -57,7 +57,7 @@ Star this repository if you like SportSync!
 
 ## 📞 Contact
 
-Your Name - [Your Contact Information] - email@example.com
+Ridwan Siddique - [Ridwan Siddique](https://www.linkedin.com/in/ridwansiddique/) - ridwan.siddique@usask.ca
 
 Project Link: [SportSync](https://github.com/RidwanSiddique/SportSync)
 
